@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Smart E-Buggy — Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    :root {
+      --bg: #0f1724;
+      --card: #0b1220;
+      --muted: #9aa6b2;
+      --accent: #4f46e5;
+      color: #e6eef6;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body { background: var(--bg); color: color; margin: 0; padding: 18px; }
+    h1 { margin: 0 0 12px 0; font-size: 20px; color: #e6eef6; }
+    #container { display:flex; gap:12px; align-items:flex-start; }
+    #map { height: 620px; width: 75vw; border-radius:8px; overflow:hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+    .sidebar { width: 320px; }
+    .card { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
+    .device-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.03); }
+    .muted { color: var(--muted); font-size: 13px; }
+    canvas { width:100% !important; height:150px !important; }
+    .pill { background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; font-weight:600; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>Smart E-Buggy Tracker — Dashboard</h1>
+  <div id="container">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:700;font-size:16px">Devices</div>
+            <div class="muted">Live positions on map</div>
+          </div>
+          <div class="pill" id="liveStatus">Live</div>
+        </div>
+        <div id="devicesList" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700">Trips (last 30 days)</div>
+        <div class="muted">Daily count & CO₂ saved</div>
+        <canvas id="tripsChart"></canvas>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <div><div class="muted">Total trips</div><div id="totalTrips">0</div></div>
+          <div><div class="muted">Total km</div><div id="totalKm">0</div></div>
+          <div><div class="muted">CO₂ saved (kg)</div><div id="co2Saved">0</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700">Quick Actions</div>
+        <div style="margin-top:8px">
+          <button onclick="simulate()" style="padding:8px 10px;border-radius:6px;background:var(--accent);color:white;border:none;cursor:pointer">Simulate POST</button>
+          <div class="muted" style="margin-top:8px;font-size:13px">Simulate a device POST (for testing without hardware)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // Map
+    const map = L.map('map').setView([12.9716,77.5946], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markers = {};
+
+    async function fetchLatest() {
+      try {
+        const res = await fetch('/api/devices/latest');
+        const data = await res.json();
+        const container = document.getElementById('devicesList');
+        container.innerHTML = '';
+        data.forEach(d => {
+          const key = d.device_id;
+          const latlng = [d.lat, d.lon];
+          if (!markers[key]) {
+            markers[key] = L.marker(latlng).addTo(map).bindPopup(`<b>${key}</b>`);
+          } else {
+            markers[key].setLatLng(latlng);
+          }
+          const el = document.createElement('div');
+          el.className = 'device-row';
+          el.innerHTML = `<div><div style="font-weight:600">${key}</div><div class="muted">${new Date(d.timestamp).toLocaleString()}</div></div><div style="text-align:right"><div style="font-weight:700">${(d.speed_kmh||0).toFixed(0)} km/h</div><div class="muted">speed</div></div>`;
+          container.appendChild(el);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // trips chart
+    let tripsChart = null;
+    async function fetchTripsSummary() {
+      try {
+        const res = await fetch('/api/trips/summary');
+        const data = await res.json();
+        document.getElementById('totalTrips').innerText = data.total_trips;
+        document.getElementById('totalKm').innerText = data.total_km.toFixed(2);
+        document.getElementById('co2Saved').innerText = data.co2_saved_kg.toFixed(2);
+        const days = data.days.map(d => d.day);
+        const counts = data.days.map(d => d.trips);
+        if (!tripsChart) {
+          const ctx = document.getElementById('tripsChart').getContext('2d');
+          tripsChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: days, datasets: [{ label: 'Trips per day', data: counts }] },
+            options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#cbd5e1' } }, y: { ticks: { color: '#cbd5e1' } } }, responsive: true, maintainAspectRatio: false }
+          });
+        } else {
+          tripsChart.data.labels = days;
+          tripsChart.data.datasets[0].data = counts;
+          tripsChart.update();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // polling
+    setInterval(fetchLatest, 5000);
+    setInterval(fetchTripsSummary, 15000);
+    fetchLatest();
+    fetchTripsSummary();
+
+    // quick simulate POST (for testing)
+    async function simulate(){
+      const payload = {
+        device_id: "buggy_01",
+        lat: 12.9710 + (Math.random()-0.5)/1000,
+        lon: 77.5946 + (Math.random()-0.5)/1000,
+        speed_kmh: (5 + Math.random()*20).toFixed(1),
+        timestamp: new Date().toISOString(),
+        api_key: "dev_key_please_change"
+      };
+      const res = await fetch('/api/location', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json();
+      console.log("simulate response", j);
+      // small immediate refresh
+      fetchLatest();
+      fetchTripsSummary();
+    }
+  </script>
+</body>
+</html>
