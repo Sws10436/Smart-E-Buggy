@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>E-Buggy Tracker Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5fdf9;
+      display: flex;
+    }
+    .sidebar {
+      width: 240px;
+      background: white;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      color: #10b981;
+    }
+    .sidebar a {
+      display: block;
+      margin: 12px 0;
+      text-decoration: none;
+      color: #333;
+    }
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .card p {
+      font-size: 24px;
+      margin: 8px 0 0;
+      font-weight: bold;
+    }
+    .chart-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+    .trips {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .trip {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>⚡ E-Buggy Tracker</h2>
+    <a>Dashboard</a>
+    <a>Devices</a>
+    <a>Trips</a>
+    <a>Geofences</a>
+    <a>Settings</a>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <h1>Live Tracking Dashboard</h1>
+
+    <!-- Metric cards -->
+    <div class="cards">
+      <div class="card">
+        <h3>Active Buggies</h3>
+        <p>2</p>
+      </div>
+      <div class="card">
+        <h3>Total Trips</h3>
+        <p>5</p>
+      </div>
+      <div class="card">
+        <h3>Distance Covered</h3>
+        <p>4.3 km</p>
+      </div>
+      <div class="card">
+        <h3>CO₂ Saved</h3>
+        <p>0.5 kg</p>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-box">
+      <h2>CO₂ Emissions: Diesel vs EV</h2>
+      <canvas id="co2Chart"></canvas>
+    </div>
+
+    <!-- Recent trips -->
+    <div class="trips">
+      <h2>Recent Trips</h2>
+      <div class="trip"><span>Block A → Block B</span><span>0.85 km</span></div>
+      <div class="trip"><span>Block C → Block A</span><span>0.95 km</span></div>
+      <div class="trip"><span>Block B → Block A</span><span>0.81 km</span></div>
+      <div class="trip"><span>Block D → Block C</span><span>0.90 km</span></div>
+      <div class="trip"><span>Block A → Block D</span><span>0.79 km</span></div>
+    </div>
+
+  </div>
+
+  <script>
+    const dieselRate = 0.188;
+    const evRate = 0.070;
+
+    const distances = [0.85, 0.95, 0.81, 0.90, 0.79];
+    const labels = ["Trip 1", "Trip 2", "Trip 3", "Trip 4", "Trip 5"];
+
+    const dieselCO2 = distances.map(d => (d * dieselRate).toFixed(2));
+    const evCO2 = distances.map(d => (d * evRate).toFixed(2));
+
+    new Chart(document.getElementById("co2Chart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Diesel Buggy (kg CO₂)",
+            data: dieselCO2,
+            borderWidth: 2
+          },
+          {
+            label: "Electric Buggy (kg CO₂)",
+            data: evCO2,
+            borderWidth: 2
+          }
+        ]
+      }
+    });
+  </script>
+
+</body>
+</html>
