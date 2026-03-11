@@ -3,6 +3,23 @@ from flask_cors import CORS
 import sqlite3
 from datetime import datetime
 import os
+import math
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in km
+
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    return R * c
 
 app = Flask(__name__)
 CORS(app)
@@ -17,12 +34,13 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS gps_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            latitude REAL,
-            longitude REAL,
-            speed REAL,
-            timestamp TEXT
-        )
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        latitude REAL,
+        longitude REAL,
+        speed REAL,
+        distance REAL,
+        timestamp TEXT
+    )
     """)
     conn.commit()
     conn.close()
@@ -56,10 +74,24 @@ def update_location():
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
 
+    # Get previous location
     cursor.execute("""
-        INSERT INTO gps_logs (latitude, longitude, speed, timestamp)
-        VALUES (?, ?, ?, ?)
-    """, (latitude, longitude, speed, datetime.now()))
+    SELECT latitude, longitude FROM gps_logs
+    ORDER BY id DESC LIMIT 1
+    """)
+
+    prev = cursor.fetchone()
+
+    distance = 0
+
+    if prev:
+        prev_lat, prev_lon = prev
+        distance = haversine(prev_lat, prev_lon, latitude, longitude)
+
+    cursor.execute("""
+    INSERT INTO gps_logs (latitude, longitude, speed, distance, timestamp)
+    VALUES (?, ?, ?, ?, ?)
+    """, (latitude, longitude, speed, distance, datetime.now()))
 
     conn.commit()
     conn.close()
@@ -79,7 +111,7 @@ def latest():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT latitude, longitude, speed, timestamp
+        SELECT latitude, longitude, speed, distance, timestamp
         FROM gps_logs
         ORDER BY id DESC
         LIMIT 1
@@ -90,11 +122,12 @@ def latest():
 
     if row:
         return jsonify({
-            "latitude": row[0],
-            "longitude": row[1],
-            "speed": row[2],
-            "timestamp": row[3]
-        })
+    "latitude": row[0],
+    "longitude": row[1],
+    "speed": row[2],
+    "distance": row[3],
+    "timestamp": row[4]
+    })
 
     return jsonify({"error": "No data found"}), 404
 

@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <title>E-Buggy Tracker</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
 
@@ -229,9 +234,13 @@ table th, table td {
 <div id="location" class="section">
   <div class="card">
     <h2>Live GPS Location</h2>
+
     <p><strong>Latitude:</strong> <span id="lat">--</span></p>
     <p><strong>Longitude:</strong> <span id="lon">--</span></p>
     <p><strong>Speed:</strong> <span id="speed">--</span> km/h</p>
+
+    <div id="map" style="height:400px;margin-top:20px;border-radius:10px;"></div>
+
   </div>
 </div>
 
@@ -239,26 +248,62 @@ table th, table td {
 
 <script>
 function showSection(id){
+
   document.querySelectorAll('.section')
     .forEach(s => s.classList.remove('active'));
+
   document.getElementById(id).classList.add('active');
+
+  if(id === "location"){
+      setTimeout(function(){
+          map.invalidateSize();
+      },200);
+  }
+
 }
+var map = L.map('map').setView([12.9716, 77.5946], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: 'Map data © OpenStreetMap'
+}).addTo(map);
+
+var marker = L.marker([12.9716, 77.5946]).addTo(map);
+var routeCoordinates = [];
+var routeLine = L.polyline(routeCoordinates, {
+  color: 'cyan',
+  weight: 4
+}).addTo(map);
+
 function updateData() {
-  fetch("http://127.0.0.1:5000/api/latest")
+
+  fetch("https://smart-e-buggy.onrender.com/api/latest")
     .then(res => res.json())
     .then(data => {
 
         if(data.latitude){
+
             document.getElementById("lat").innerText = data.latitude;
             document.getElementById("lon").innerText = data.longitude;
             document.getElementById("speed").innerText = data.speed;
+
+            var lat = parseFloat(data.latitude);
+            var lon = parseFloat(data.longitude);
+
+            marker.setLatLng([lat, lon]);
+            map.setView([lat, lon]);
+
+            routeCoordinates.push([lat, lon]);
+
+            routeLine.setLatLngs(routeCoordinates);
+
         }
 
     })
     .catch(error => console.log("Error:", error));
 }
 
-setInterval(updateData, 3000);
+updateData();
+setInterval(updateData, 3000);  
 </script>
 
 </body>
