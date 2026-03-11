@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
@@ -164,151 +163,214 @@ table th, table td {
 <body>
 
 <nav>
-  <strong>E-Buggy Tracker</strong>
-  <button onclick="showSection('home')">Home</button>
-  <button onclick="showSection('distance')">Distance</button>
-  <button onclick="showSection('visual')">Visualisation</button>
-  <button onclick="showSection('location')">Location</button>
+<strong>E-Buggy Tracker</strong>
+<button onclick="showSection('home')">Home</button>
+<button onclick="showSection('distance')">Distance</button>
+<button onclick="showSection('visual')">Visualisation</button>
+<button onclick="showSection('location')">Location</button>
 </nav>
 
 <div class="container">
 
 <!-- HOME -->
 <div id="home" class="section active">
-  <div class="hero">
-    <h1>Smart Electric Buggy Monitoring System</h1>
-    <p>
-      A GPS-enabled system that tracks distance travelled by an electric buggy,
-      visualizes emissions data, and compares it with a diesel buggy.
-    </p>
+<div class="hero">
 
-    <div class="stats">
-      <div class="stat-card">
-        <h3>4.3 KM</h3>
-        <p>Distance Tracked</p>
-      </div>
+<h1>Smart Electric Buggy Monitoring System</h1>
 
-      <div class="stat-card">
-        <h3>63%</h3>
-        <p>CO₂ Reduction</p>
-      </div>
+<p>
+A GPS-enabled system that tracks distance travelled by an electric buggy,
+visualizes emissions data, and compares it with a diesel buggy.
+</p>
 
-      <div class="stat-card">
-        <h3>GPS</h3>
-        <p>Live Tracking</p>
-      </div>
-    </div>
+<div class="stats">
 
-    <div class="cta">
-      <button class="btn-blue" onclick="showSection('distance')">
-        View Distance
-      </button>
+<div class="stat-card">
+<h3 id="distanceStat">0 KM</h3>
+<p>Distance Tracked</p>
+</div>
 
-      <button class="btn-blue" onclick="showSection('visual')">
-        View Emissions
-      </button>
+<div class="stat-card">
+<h3>63%</h3>
+<p>CO₂ Reduction</p>
+</div>
 
-      <button class="btn-blue" onclick="showSection('location')">
-        Check Location
-      </button>
-    </div>
-  </div>
+<div class="stat-card">
+<h3>GPS</h3>
+<p>Live Tracking</p>
+</div>
+
+</div>
+
+<div class="cta">
+
+<button class="btn-blue" onclick="showSection('distance')">
+View Distance
+</button>
+
+<button class="btn-blue" onclick="showSection('visual')">
+View Emissions
+</button>
+
+<button class="btn-blue" onclick="showSection('location')">
+Check Location
+</button>
+
+</div>
+</div>
 </div>
 
 <!-- DISTANCE -->
 <div id="distance" class="section">
-  <div class="card">
-    <h2>Weekly Distance Travelled</h2>
-  </div>
+<div class="card">
+<h2>Total Distance Travelled</h2>
+<h1 id="distanceValue">0 KM</h1>
+</div>
 </div>
 
 <!-- VISUAL -->
 <div id="visual" class="section">
-  <div class="card">
-    <h2>CO₂ Emission Comparison</h2>
-    <canvas id="co2Chart"></canvas>
-  </div>
+<div class="card">
+<h2>CO₂ Emission Comparison</h2>
+<canvas id="co2Chart"></canvas>
+</div>
 </div>
 
 <!-- LOCATION -->
 <div id="location" class="section">
-  <div class="card">
-    <h2>Live GPS Location</h2>
+<div class="card">
 
-    <p><strong>Latitude:</strong> <span id="lat">--</span></p>
-    <p><strong>Longitude:</strong> <span id="lon">--</span></p>
-    <p><strong>Speed:</strong> <span id="speed">--</span> km/h</p>
+<h2>Live GPS Location</h2>
 
-    <div id="map" style="height:400px;margin-top:20px;border-radius:10px;"></div>
+<p><strong>Latitude:</strong> <span id="lat">--</span></p>
+<p><strong>Longitude:</strong> <span id="lon">--</span></p>
+<p><strong>Speed:</strong> <span id="speed">--</span> km/h</p>
 
-  </div>
+<div id="map" style="height:400px;margin-top:20px;border-radius:10px;"></div>
+
+</div>
 </div>
 
 </div>
 
 <script>
+
 function showSection(id){
 
-  document.querySelectorAll('.section')
-    .forEach(s => s.classList.remove('active'));
+document.querySelectorAll('.section')
+.forEach(s => s.classList.remove('active'));
 
-  document.getElementById(id).classList.add('active');
+document.getElementById(id).classList.add('active');
 
-  if(id === "location"){
-      setTimeout(function(){
-          map.invalidateSize();
-      },200);
-  }
+if(id === "location"){
+setTimeout(()=>map.invalidateSize(),200);
+}
 
 }
-var map = L.map('map').setView([12.8406, 80.1534], 16);
-L.marker([12.8406, 80.1534])
-  .addTo(map)
-  .bindPopup("VIT Chennai Campus")
-  .openPopup();
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 20,
-  attribution: 'Map data © OpenStreetMap'
+/* ================= MAP ================= */
+
+var map = L.map('map').setView([12.8412,80.1539],16);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:20,
+attribution:'Map data © OpenStreetMap'
 }).addTo(map);
 
-var marker = L.marker([12.9716, 77.5946]).addTo(map);
-var routeCoordinates = [];
-var routeLine = L.polyline(routeCoordinates, {
-  color: 'cyan',
-  weight: 4
-}).addTo(map);
+var marker = L.marker([12.8412,80.1539]).addTo(map);
 
-function updateData() {
+/* ================= DISTANCE ================= */
 
-  fetch("https://smart-e-buggy.onrender.com/api/latest")
-    .then(res => res.json())
-    .then(data => {
+let lastLat = null;
+let lastLon = null;
+let totalDistance = 0;
 
-        if(data.latitude){
+function calculateDistance(lat1,lon1,lat2,lon2){
 
-            document.getElementById("lat").innerText = data.latitude;
-            document.getElementById("lon").innerText = data.longitude;
-            document.getElementById("speed").innerText = data.speed;
+const R = 6371;
 
-            var lat = parseFloat(data.latitude);
-            var lon = parseFloat(data.longitude);
+let dLat = (lat2-lat1) * Math.PI/180;
+let dLon = (lon2-lon1) * Math.PI/180;
 
-            marker.setLatLng([lat, lon]);
-            map.setView([lat, lon]);
+let a =
+Math.sin(dLat/2) * Math.sin(dLat/2) +
+Math.cos(lat1*Math.PI/180) *
+Math.cos(lat2*Math.PI/180) *
+Math.sin(dLon/2) *
+Math.sin(dLon/2);
 
-            routeCoordinates.push([lat, lon]);
+let c = 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 
-            routeLine.setLatLngs(routeCoordinates);
+return R * c;
 
-        }
+}
 
-    })
-    .catch(error => console.log("Error:", error));
+/* ================= API ================= */
+
+function updateData(){
+
+fetch("https://smart-e-buggy.onrender.com/api/latest")
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(!data.latitude) return;
+
+let lat = parseFloat(data.latitude);
+let lon = parseFloat(data.longitude);
+
+document.getElementById("lat").innerText = lat;
+document.getElementById("lon").innerText = lon;
+document.getElementById("speed").innerText = data.speed;
+
+marker.setLatLng([lat,lon]);
+
+map.setView([lat,lon]);
+
+if(lastLat !== null){
+
+let dist = calculateDistance(lastLat,lastLon,lat,lon);
+
+totalDistance += dist;
+
+document.getElementById("distanceValue").innerText =
+totalDistance.toFixed(3) + " KM";
+
+document.getElementById("distanceStat").innerText =
+totalDistance.toFixed(2) + " KM";
+
+}
+
+lastLat = lat;
+lastLon = lon;
+
+})
+
+.catch(err=>console.log(err));
+
 }
 
 updateData();
-setInterval(updateData, 3000);  
+
+setInterval(updateData,3000);
+
+/* ================= CHART ================= */
+
+var ctx = document.getElementById("co2Chart");
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Diesel Buggy","E-Buggy"],
+datasets:[{
+label:"CO₂ Emission (g/km)",
+data:[180,0],
+borderWidth:1
+}]
+}
+});
+
 </script>
 
 </body>
